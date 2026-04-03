@@ -16,7 +16,9 @@ from pathlib import Path
 # ── Module state ────────────────────────────────────────────────────────────
 _active_profile = 'default'
 _profile_lock = threading.Lock()
-_DEFAULT_HERMES_HOME = Path.home() / '.hermes'
+# Read from env var so test isolation (HERMES_HOME=TEST_STATE_DIR) is respected.
+# Evaluated at import time; server restart picks up any env change.
+_DEFAULT_HERMES_HOME = Path(os.getenv('HERMES_HOME', str(Path.home() / '.hermes')))
 
 
 def _read_active_profile_file() -> str:
@@ -149,7 +151,7 @@ def switch_profile(name: str) -> dict:
     reload_config()
 
     # Return profile-specific defaults so frontend can apply them
-    from api.workspace import get_last_workspace, _profile_default_workspace
+    from api.workspace import get_last_workspace
     from api.config import get_config
     cfg = get_config()
     model_cfg = cfg.get('model', {})

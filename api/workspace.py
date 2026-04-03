@@ -78,8 +78,14 @@ def load_workspaces() -> list:
             return json.loads(ws_file.read_text(encoding='utf-8'))
         except Exception:
             pass
-    # Fallback: try global file (migrates from pre-profile storage)
-    if _GLOBAL_WS_FILE.exists():
+    # Fallback: for the DEFAULT profile only, migrate from the legacy global file.
+    # Named profiles should start with a clean list, not inherit another profile's workspaces.
+    try:
+        from api.profiles import get_active_profile_name
+        is_default = get_active_profile_name() in ('default', None)
+    except ImportError:
+        is_default = True
+    if is_default and _GLOBAL_WS_FILE.exists():
         try:
             return json.loads(_GLOBAL_WS_FILE.read_text(encoding='utf-8'))
         except Exception:
