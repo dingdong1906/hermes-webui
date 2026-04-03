@@ -260,11 +260,11 @@ function renderSessionListFromCache(){
       pinInd.innerHTML=ICONS.pin;
       el.appendChild(pinInd);
     }
-    // Project indicator: colored left border
+    // Project indicator: colored left border (active item keeps its own gold color)
     if(s.project_id){
       const proj=_allProjects.find(p=>p.project_id===s.project_id);
       if(proj){
-        el.style.borderLeftColor=proj.color||'var(--blue)';
+        if(!isActive) el.style.borderLeftColor=proj.color||'var(--blue)';
         const dot=document.createElement('span');
         dot.className='session-project-dot';
         dot.style.background=proj.color||'var(--blue)';

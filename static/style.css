@@ -20,14 +20,14 @@
   .session-search input::placeholder{color:var(--muted);opacity:.7;}
   /* Inline session title edit */
   .session-title-input{flex:1;background:rgba(20,32,60,.9);border:1px solid rgba(124,185,255,.6);border-radius:6px;color:var(--text);padding:3px 8px;font-size:13px;outline:none;min-width:0;box-shadow:0 0 0 2px rgba(124,185,255,.15);font-family:inherit;}
-  .session-item{padding:8px 10px 8px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s,color .15s,border-color .15s;display:flex;align-items:center;gap:6px;min-width:0;border-left:2px solid transparent;position:relative;}
+  .session-item{padding:8px 10px 8px 8px;border-radius:0 8px 8px 0;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s,color .15s,border-color .15s;display:flex;align-items:center;gap:6px;min-width:0;border-left:2px solid transparent;position:relative;}
   .session-item:hover{background:rgba(255,255,255,0.06);color:var(--text);}
-  .session-item.active{background:rgba(124,185,255,0.1);color:var(--blue);border-left:2px solid var(--blue);padding-left:8px;}
+  .session-item.active{background:rgba(232,160,48,0.12);color:#e8a030;border-left:2px solid #e8a030;padding-left:8px;}
   .session-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* ── Session action button overlay ── */
   .session-actions{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:center;gap:2px;padding:0 6px 0 16px;background:linear-gradient(to right,transparent,var(--sidebar) 12px);opacity:0;pointer-events:none;transition:opacity .15s ease;border-radius:0 8px 8px 0;}
   .session-item:hover .session-actions{opacity:1;pointer-events:auto;}
-  .session-item.active .session-actions{background:linear-gradient(to right,transparent,rgba(16,33,62,.95) 12px);}
+  .session-item.active .session-actions{background:linear-gradient(to right,transparent,rgba(30,22,8,.95) 12px);}
   .session-actions button{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 3px;line-height:1;transition:color .12s;display:flex;align-items:center;}
   .session-actions button:hover{color:var(--text);}
   .session-actions .act-trash:hover{color:var(--accent);}

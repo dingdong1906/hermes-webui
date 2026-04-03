@@ -81,6 +81,22 @@ function getModelLabel(modelId){
 
 function renderMd(raw){
   let s=raw||'';
+  // Pre-pass: convert safe inline HTML tags the model may emit into their
+  // markdown equivalents so the pipeline can render them correctly.
+  // Only runs OUTSIDE fenced code blocks and backtick spans (stash + restore).
+  // Unsafe tags (anything not in the allowlist) are left as-is and will be
+  // HTML-escaped by esc() when they reach an innerHTML assignment -- no XSS risk.
+  const fence_stash=[];
+  s=s.replace(/(```[\s\S]*?```|`[^`\n]+`)/g,m=>{fence_stash.push(m);return '\x00F'+(fence_stash.length-1)+'\x00';});
+  // Safe tag → markdown equivalent (these produce the same output as **text** etc.)
+  s=s.replace(/<strong>([\s\S]*?)<\/strong>/gi,(_,t)=>'**'+t+'**');
+  s=s.replace(/<b>([\s\S]*?)<\/b>/gi,(_,t)=>'**'+t+'**');
+  s=s.replace(/<em>([\s\S]*?)<\/em>/gi,(_,t)=>'*'+t+'*');
+  s=s.replace(/<i>([\s\S]*?)<\/i>/gi,(_,t)=>'*'+t+'*');
+  s=s.replace(/<code>([^<]*?)<\/code>/gi,(_,t)=>'`'+t+'`');
+  s=s.replace(/<br\s*\/?>/gi,'\n');
+  // Restore stashed code blocks
+  s=s.replace(/\x00F(\d+)\x00/g,(_,i)=>fence_stash[+i]);
   // Mermaid blocks: render as diagram containers (processed after DOM insertion)
   s=s.replace(/```mermaid\n?([\s\S]*?)```/g,(_,code)=>{
     const id='mermaid-'+Math.random().toString(36).slice(2,10);
@@ -88,12 +104,27 @@ function renderMd(raw){
   });
   s=s.replace(/```([\w+-]*)\n?([\s\S]*?)```/g,(_,lang,code)=>{const h=lang?`<div class="pre-header">${esc(lang)}</div>`:'';return `${h}<pre><code>${esc(code.replace(/\n$/,''))}</code></pre>`;});
   s=s.replace(/`([^`\n]+)`/g,(_,c)=>`<code>${esc(c)}</code>`);
+  // inlineMd: process bold/italic/code/links within a single line of text.
+  // Used inside list items and blockquotes where the text may already contain
+  // HTML from the pre-pass → bold pipeline, so we cannot call esc() directly.
+  function inlineMd(t){
+    t=t.replace(/\*\*\*(.+?)\*\*\*/g,(_,x)=>`<strong><em>${esc(x)}</em></strong>`);
+    t=t.replace(/\*\*(.+?)\*\*/g,(_,x)=>`<strong>${esc(x)}</strong>`);
+    t=t.replace(/\*([^*\n]+)\*/g,(_,x)=>`<em>${esc(x)}</em>`);
+    t=t.replace(/`([^`\n]+)`/g,(_,x)=>`<code>${esc(x)}</code>`);
+    t=t.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,(_,lb,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(lb)}</a>`);
+    // Escape any plain text that isn't already wrapped in a tag we produced
+    // by escaping bare < > that aren't part of our own tags
+    const SAFE_INLINE=/^<\/?(strong|em|code|a)([\s>]|$)/i;
+    t=t.replace(/<\/?[a-z][^>]*>/gi,tag=>SAFE_INLINE.test(tag)?tag:esc(tag));
+    return t;
+  }
   s=s.replace(/\*\*\*(.+?)\*\*\*/g,(_,t)=>`<strong><em>${esc(t)}</em></strong>`);
   s=s.replace(/\*\*(.+?)\*\*/g,(_,t)=>`<strong>${esc(t)}</strong>`);
   s=s.replace(/\*([^*\n]+)\*/g,(_,t)=>`<em>${esc(t)}</em>`);
-  s=s.replace(/^### (.+)$/gm,(_,t)=>`<h3>${esc(t)}</h3>`).replace(/^## (.+)$/gm,(_,t)=>`<h2>${esc(t)}</h2>`).replace(/^# (.+)$/gm,(_,t)=>`<h1>${esc(t)}</h1>`);
+  s=s.replace(/^### (.+)$/gm,(_,t)=>`<h3>${inlineMd(t)}</h3>`).replace(/^## (.+)$/gm,(_,t)=>`<h2>${inlineMd(t)}</h2>`).replace(/^# (.+)$/gm,(_,t)=>`<h1>${inlineMd(t)}</h1>`);
   s=s.replace(/^---+$/gm,'<hr>');
-  s=s.replace(/^> (.+)$/gm,(_,t)=>`<blockquote>${esc(t)}</blockquote>`);
+  s=s.replace(/^> (.+)$/gm,(_,t)=>`<blockquote>${inlineMd(t)}</blockquote>`);
   // B8: improved list handling supporting up to 2 levels of indentation
   s=s.replace(/((?:^(?:  )?[-*+] .+\n?)+)/gm,block=>{
     const lines=block.trimEnd().split('\n');
@@ -101,8 +132,8 @@ function renderMd(raw){
     for(const l of lines){
       const indent=/^ {2,}/.test(l);
       const text=l.replace(/^ {0,4}[-*+] /,'');
-      if(indent) html+=`<li style="margin-left:16px">${esc(text)}</li>`;
-      else html+=`<li>${esc(text)}</li>`;
+      if(indent) html+=`<li style="margin-left:16px">${inlineMd(text)}</li>`;
+      else html+=`<li>${inlineMd(text)}</li>`;
     }
     return html+'</ul>';
   });
@@ -111,7 +142,7 @@ function renderMd(raw){
     let html='<ol>';
     for(const l of lines){
       const text=l.replace(/^ {0,4}\d+\. /,'');
-      html+=`<li>${esc(text)}</li>`;
+      html+=`<li>${inlineMd(text)}</li>`;
     }
     return html+'</ol>';
   });
@@ -128,6 +159,12 @@ function renderMd(raw){
     const body=rows.slice(2).map(r=>`<tr>${parseRow(r)}</tr>`).join('');
     return `<table><thead>${header}</thead><tbody>${body}</tbody></table>`;
   });
+  // Escape any remaining HTML tags that are NOT from our own markdown output.
+  // Our pipeline only emits: <strong>,<em>,<code>,<pre>,<h1-6>,<ul>,<ol>,<li>,
+  // <table>,<thead>,<tbody>,<tr>,<th>,<td>,<hr>,<blockquote>,<p>,<br>,<a>,
+  // <div class="..."> (mermaid/pre-header). Everything else is untrusted input.
+  const SAFE_TAGS=/^<\/?(strong|em|code|pre|h[1-6]|ul|ol|li|table|thead|tbody|tr|th|td|hr|blockquote|p|br|a|div)([\s>]|$)/i;
+  s=s.replace(/<\/?[a-z][^>]*>/gi,tag=>SAFE_TAGS.test(tag)?tag:esc(tag));
   const parts=s.split(/\n{2,}/);
   s=parts.map(p=>{p=p.trim();if(!p)return '';if(/^<(h[1-6]|ul|ol|pre|hr|blockquote)/.test(p))return p;return `<p>${p.replace(/\n/g,'<br>')}</p>`;}).join('\n');
   return s;
