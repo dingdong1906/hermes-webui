@@ -24,6 +24,7 @@ except ImportError:
 _update_cache = {'webui': None, 'agent': None, 'checked_at': 0}
 _cache_lock = threading.Lock()
 _check_in_progress = False
+_apply_lock = threading.Lock()   # prevents concurrent stash/pull/pop on same repo
 CACHE_TTL = 1800  # 30 minutes
 
 
@@ -108,6 +109,16 @@ def check_for_updates(force=False):
 
 def apply_update(target):
     """Stash, pull --ff-only, pop for the given target repo."""
+    if not _apply_lock.acquire(blocking=False):
+        return {'ok': False, 'message': 'Update already in progress'}
+    try:
+        return _apply_update_inner(target)
+    finally:
+        _apply_lock.release()
+
+
+def _apply_update_inner(target):
+    """Inner implementation of apply_update, called under _apply_lock."""
     if target == 'webui':
         path = REPO_ROOT
     elif target == 'agent':

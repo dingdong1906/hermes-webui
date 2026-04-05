@@ -995,21 +995,6 @@ async function loadSettingsPanel(){
       modelSel.value=settings.default_model||'';
       modelSel.addEventListener('change',_markSettingsDirty,{once:false});
     }
-    // Populate workspace dropdown from /api/workspaces
-    const wsSel=$('settingsWorkspace');
-    if(wsSel){
-      wsSel.innerHTML='';
-      try{
-        const wsData=await api('/api/workspaces');
-        for(const w of (wsData.workspaces||[])){
-          const opt=document.createElement('option');
-          opt.value=w.path;opt.textContent=w.name||w.path;
-          wsSel.appendChild(opt);
-        }
-      }catch(e){}
-      wsSel.value=settings.default_workspace||'';
-      wsSel.addEventListener('change',_markSettingsDirty,{once:false});
-    }
     // Send key preference
     const sendKeySel=$('settingsSendKey');
     if(sendKeySel){sendKeySel.value=settings.send_key||'enter';sendKeySel.addEventListener('change',_markSettingsDirty,{once:false});}
@@ -1043,7 +1028,6 @@ async function loadSettingsPanel(){
 
 async function saveSettings(andClose){
   const model=($('settingsModel')||{}).value;
-  const workspace=($('settingsWorkspace')||{}).value;
   const sendKey=($('settingsSendKey')||{}).value;
   const showTokenUsage=!!($('settingsShowTokenUsage')||{}).checked;
   const showCliSessions=!!($('settingsShowCliSessions')||{}).checked;
@@ -1051,7 +1035,7 @@ async function saveSettings(andClose){
   const theme=($('settingsTheme')||{}).value||'dark';
   const body={};
   if(model) body.default_model=model;
-  if(workspace) body.default_workspace=workspace;
+
   if(sendKey) body.send_key=sendKey;
   body.theme=theme;
   body.show_token_usage=showTokenUsage;
