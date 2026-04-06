@@ -296,7 +296,7 @@ _FALLBACK_MODELS = [
     {'provider': 'OpenAI',    'id': 'openai/o4-mini',                   'label': 'o4-mini'},
     {'provider': 'Anthropic', 'id': 'anthropic/claude-sonnet-4.6',      'label': 'Claude Sonnet 4.6'},
     {'provider': 'Anthropic', 'id': 'anthropic/claude-sonnet-4-5',      'label': 'Claude Sonnet 4.5'},
-    {'provider': 'Anthropic', 'id': 'anthropic/claude-haiku-3-5',       'label': 'Claude Haiku 3.5'},
+    {'provider': 'Anthropic', 'id': 'anthropic/claude-haiku-4-5',       'label': 'Claude Haiku 4.5'},
     {'provider': 'Other',     'id': 'google/gemini-2.5-pro',            'label': 'Gemini 2.5 Pro'},
     {'provider': 'Other',     'id': 'deepseek/deepseek-chat-v3-0324',   'label': 'DeepSeek V3'},
     {'provider': 'Other',     'id': 'meta-llama/llama-4-scout',         'label': 'Llama 4 Scout'},
@@ -318,7 +318,7 @@ _PROVIDER_MODELS = {
         {'id': 'claude-opus-4.6',    'label': 'Claude Opus 4.6'},
         {'id': 'claude-sonnet-4.6',  'label': 'Claude Sonnet 4.6'},
         {'id': 'claude-sonnet-4-5',  'label': 'Claude Sonnet 4.5'},
-        {'id': 'claude-haiku-3-5',   'label': 'Claude Haiku 3.5'},
+        {'id': 'claude-haiku-4-5',   'label': 'Claude Haiku 4.5'},
     ],
     'openai': [
         {'id': 'gpt-5.4-mini', 'label': 'GPT-5.4 Mini'},
