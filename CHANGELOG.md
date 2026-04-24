@@ -5,6 +5,11 @@
 ### Fixed
 - **Reasoning chip now appears after the model chip** in the composer toolbar — model is a more fundamental choice and should be stable in position regardless of whether reasoning is active. Order: Profile → Workspace → Model → Reasoning. (`static/index.html`)
 
+## v0.50.195 — 2026-04-24
+
+### Fixed
+- **Auth sessions now persist across server restarts** — previously `_sessions` was an in-memory dict, so every process restart (launchd, systemd, container recycle) invalidated all browser sessions and forced users to log in again. Sessions are now atomically persisted to `STATE_DIR/.sessions.json` (0600 permissions) via a temp-file + `os.replace()` write pattern. Expired sessions are pruned on load. Corrupt or missing session files start fresh without crashing. (`api/auth.py`, `tests/test_auth_session_persistence.py`) By @24601. [#962]
+
 ## v0.50.194 — 2026-04-24
 
 ### Fixed
