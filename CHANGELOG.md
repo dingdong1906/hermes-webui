@@ -38,6 +38,7 @@
 - **Reasoning effort chip in composer** — visual chip to set reasoning effort level from the composer footer without typing a command. (`static/ui.js`, `static/index.html`, `static/style.css`)
 
 ### Fixed
+- **Background task completion hook wired** — `complete_background()` was never called after a background agent finished, so tasks stayed in `status="running"` forever and polling always returned `[]`. Fixed by wrapping `_run_agent_streaming` in `_run_bg_and_notify` which extracts the last assistant message and signals the tracker. Also fixed `get_results()` to retain in-flight tasks during polls so concurrent tasks are not dropped. (`api/background.py`, `api/routes.py`, `tests/test_background_tasks.py`)
 - **Ephemeral sessions correctly skip persistence** — added `return` after the ephemeral `done` event in `_run_agent_streaming()`, preventing ephemeral session state from being written to disk after stream completion. (`api/streaming.py`)
 
 Co-authored by @bergeouss.
