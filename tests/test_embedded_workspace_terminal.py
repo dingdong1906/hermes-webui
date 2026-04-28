@@ -33,6 +33,11 @@ def test_terminal_surface_uses_composer_flyout_card_pattern():
     assert ".composer-terminal-panel{position:absolute" in style_css
     assert "bottom:-24px" in style_css
     assert "width:min(calc(100% - 64px),720px)" in style_css
+    assert ".composer-wrap.terminal-dock-visible .composer-flyout{z-index:4" in style_css
+    assert ".composer-terminal-panel.is-collapsed{bottom:-2px;width:min(calc(100% - 112px),560px);overflow:visible;z-index:4" in style_css
+    assert ".composer-terminal-panel.is-expanding-from-dock .composer-terminal-inner{transition:opacity .18s ease" in style_css
+    assert ".messages.terminal-expanding-from-dock{transition:none!important" in style_css
+    assert ".composer-terminal-dock{min-height:42px" in style_css
     assert ".composer-terminal-inner{height:var(--composer-terminal-height,260px)" in style_css
     assert "transform:translateY(100%)" in style_css
 
@@ -81,6 +86,50 @@ def test_terminal_open_reserves_transcript_space():
     assert "messages.style.removeProperty('--terminal-card-height')" in terminal_js
     assert "function _terminalIsMessagesNearBottom" in terminal_js
     assert "scrollToBottom" in terminal_js
+
+
+def test_terminal_collapsed_state_preserves_pty_and_output_surface():
+    html = _read("static/index.html")
+    terminal_js = _read("static/terminal.js")
+
+    assert 'id="btnTerminalCollapse"' in html
+    assert 'onclick="collapseComposerTerminal()"' in html
+    assert 'id="btnTerminalExpand"' in html
+    assert 'onclick="expandComposerTerminal()"' in html
+    assert 'id="btnTerminalDockClose"' in html
+    assert 'onclick="closeComposerTerminal()"' in html
+    assert "collapsed:false" in terminal_js
+    collapse_block = terminal_js.split("function collapseComposerTerminal", 1)[1].split("function expandComposerTerminal", 1)[0]
+    assert "api('/api/terminal/close'" not in collapse_block
+    assert "_disposeXterm" not in collapse_block
+    assert "_setTerminalChromeState('collapsed')" in collapse_block
+    assert "composerWrap.classList.toggle('terminal-dock-visible',collapsed)" in terminal_js
+    expand_block = terminal_js.split("function expandComposerTerminal", 1)[1].split("function _disposeXterm", 1)[0]
+    assert "_setTerminalChromeState('expanded')" in expand_block
+    assert "panel.classList.add('is-expanding-from-dock')" in expand_block
+    assert "panel.classList.remove('is-expanding-from-dock')" in expand_block
+    assert "messages.classList.add('terminal-expanding-from-dock')" in expand_block
+    assert "messages.classList.remove('terminal-expanding-from-dock')" in expand_block
+    assert "_syncTerminalTranscriptSpace(true,{immediate:true});" in expand_block
+    assert "void messages.offsetHeight;" in expand_block
+    assert expand_block.index("_syncTerminalTranscriptSpace(true,{immediate:true});") < expand_block.index("_setTerminalChromeState('expanded')")
+    assert expand_block.index("void messages.offsetHeight;") < expand_block.index("_setTerminalChromeState('expanded')")
+    assert "_resetTerminalHeightForViewport();" in expand_block
+    assert "focusComposerTerminalInput();" in expand_block
+    close_block = terminal_js.split("async function closeComposerTerminal", 1)[1].split("async function restartComposerTerminal", 1)[0]
+    assert "api('/api/terminal/close'" in close_block
+    assert "_disposeXterm();" in close_block
+
+
+def test_terminal_slash_command_expands_existing_collapsed_terminal():
+    commands_js = _read("static/commands.js")
+    terminal_js = _read("static/terminal.js")
+
+    assert "await toggleComposerTerminal(true)" in commands_js
+    toggle_block = terminal_js.split("async function toggleComposerTerminal", 1)[1].split("function collapseComposerTerminal", 1)[0]
+    assert "if(TERMINAL_UI.open)" in toggle_block
+    assert "if(TERMINAL_UI.collapsed)expandComposerTerminal();" in toggle_block
+    assert "else focusComposerTerminalInput();" in toggle_block
 
 
 def test_terminal_v1_does_not_expose_send_to_chat_action():
