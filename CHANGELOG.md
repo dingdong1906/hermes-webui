@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Embedded terminal resize and collapse controls restored** — restores the
+  collapse/expand dock markup and controlled height CSS variable lost during the
+  v0.50.237 batch integration, and reinstates regression coverage for terminal
+  resizing and collapsed-state behavior. (`static/index.html`,
+  `static/style.css`, `static/terminal.js`,
+  `tests/test_embedded_workspace_terminal.py`)
+
 ## [v0.50.237] — 2026-04-29
 
 ### Added
