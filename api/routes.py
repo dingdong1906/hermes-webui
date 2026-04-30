@@ -2902,14 +2902,31 @@ def _handle_clarify_sse_stream(handler, parsed):
     # Subscribe AND snapshot atomically.  We import clarify's _lock so that
     # subscribe and the snapshot read happen under the same mutex — same
     # pattern as the approval SSE handler.
-    from api.clarify import _lock as _clarify_lock, _clarify_sse_subscribers as _clarify_subs
+    #
+    # NOTE: We must NOT call clarify.get_pending() here — it acquires _lock
+    # internally, which would deadlock since clarify._lock is a non-reentrant
+    # threading.Lock.  Instead, read _gateway_queues / _pending inline under
+    # the lock we already hold.
+    from api.clarify import (
+        _lock as _clarify_lock,
+        _clarify_sse_subscribers as _clarify_subs,
+        _gateway_queues as _clarify_gateway_queues,
+        _pending as _clarify_pending,
+    )
     q = queue.Queue(maxsize=16)
     initial_pending = None
     initial_count = 0
     with _clarify_lock:
         _clarify_subs.setdefault(sid, []).append(q)
-        initial_pending = get_clarify_pending(sid)
-        initial_count = 1 if initial_pending else 0
+        gw_q = _clarify_gateway_queues.get(sid) or []
+        if gw_q:
+            initial_pending = dict(gw_q[0].data)
+            initial_count = len(gw_q)
+        else:
+            _legacy = _clarify_pending.get(sid)
+            if _legacy:
+                initial_pending = dict(_legacy)
+                initial_count = 1
 
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/event-stream; charset=utf-8')
